@@ -1,0 +1,6 @@
+# NOTE: Users below must NOT be a SAML or ESP/MSP User, as those require interactive login.
+#
+
+CLOUDGENIX_USER = 'username@example.com'
+CLOUDGENIX_PASSWORD = 'enterpassw0rdhere'
+
