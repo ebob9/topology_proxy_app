@@ -6,9 +6,9 @@ import cloudgenix
 
 # attempt to get username/password
 try:
-    from cloudgenix_settings import CLOUDGENIX_USER, CLOUDGENIX_PASSWORD
+    from .cloudgenix_settings import CLOUDGENIX_USER, CLOUDGENIX_PASSWORD
 except ImportError:
-    print "ERROR, no username/password specified in topo/cloudgenix_settings.py. cannot continue."
+    print("ERROR, no username/password specified in topo/cloudgenix_settings.py. cannot continue.")
     sys.exit(1)
 
 __author__ = 'Aaron Edwards'
@@ -51,7 +51,24 @@ def check_login():
         sdk_vars['logged_in'] = False
         # try to re-login
         while not sdk_vars['logged_in']:
-            sdk_vars['logged_in'] = sdk.interactive.login(email=CLOUDGENIX_USER, password=CLOUDGENIX_PASSWORD)
+            # sdk_vars['logged_in'] = sdk.interactive.login(email=CLOUDGENIX_USER, password=CLOUDGENIX_PASSWORD)
+            # manually log in to make it more scalable.
+
+            resp = sdk.post.login({"email": CLOUDGENIX_USER, "password": CLOUDGENIX_PASSWORD})
+
+            if resp.cgx_status:
+                auth_token = resp.cgx_content.get('x_auth_token')
+                if auth_token:
+                    auth_region = sdk.parse_region(resp)
+                    sdk.update_region_to_controller(auth_region)
+                    sdk.reparse_login_cookie_after_region_update(resp)
+
+                    profile_response = sdk.get.profile()
+                    sdk.tenant_id = profile_response.cgx_content.get('tenant_id')
+                    sdk.email = profile_response.cgx_content.get('email')
+
+                    if sdk.tenant_id:
+                        sdk_vars['logged_in'] = True
 
             if not sdk_vars['logged_in']:
                 app.logger.error("{0} - Re-login failed. Will Auto-retry.".format(

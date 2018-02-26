@@ -26,6 +26,8 @@ if __name__ == '__main__':
                               default=False, action='store_true')
     server_group.add_argument("--ip", "-I", help="IP Address to listen on, default is 0.0.0.0 (All)",
                               default="0.0.0.0", type=str)
+    server_group.add_argument("--threaded", "-T", help="Use multithreading to handle requests",
+                              default=False, action='store_true')
 
     args = vars(parser.parse_args())
 
@@ -38,4 +40,7 @@ if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=8080,
     #         debug=True)
 
-    app.run(host=args['ip'], port=args['port'], debug=args['debug'])
+    app.run(host=args['ip'],
+            port=args['port'],
+            debug=args['debug'],
+            threaded=args['threaded'])
