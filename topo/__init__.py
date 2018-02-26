@@ -6,9 +6,9 @@ import cloudgenix
 
 # attempt to get username/password
 try:
-    from cloudgenix_settings import CLOUDGENIX_USER, CLOUDGENIX_PASSWORD
+    from .cloudgenix_settings import CLOUDGENIX_USER, CLOUDGENIX_PASSWORD
 except ImportError:
-    print "ERROR, no username/password specified in topo/cloudgenix_settings.py. cannot continue."
+    print("ERROR, no username/password specified in topo/cloudgenix_settings.py. cannot continue.")
     sys.exit(1)
 
 __author__ = 'Aaron Edwards'
