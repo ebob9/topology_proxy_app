@@ -11,9 +11,6 @@ import argparse
 sys.path.append(os.path.dirname(__name__))
 from topo import create_app
 
-# create an app instance
-app = create_app()
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="CloudGenix topology API Simple HTTP gateway.")
@@ -28,6 +25,8 @@ if __name__ == '__main__':
                               default="0.0.0.0", type=str)
     server_group.add_argument("--threaded", "-T", help="Use multithreading to handle requests",
                               default=False, action='store_true')
+    server_group.add_argument("--memcached", "-M", help="Use Memcached instead of SimpleCache. Specify 'IP:PORT'.",
+                              default=None, type=str)
 
     args = vars(parser.parse_args())
 
@@ -39,6 +38,9 @@ if __name__ == '__main__':
 
     # app.run(host='0.0.0.0', port=8080,
     #         debug=True)
+
+    # create an app instance
+    app = create_app(memcached=args['memcached'])
 
     app.run(host=args['ip'],
             port=args['port'],

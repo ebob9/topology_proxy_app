@@ -2,6 +2,7 @@ import sys
 import datetime
 
 from flask import Flask, jsonify, Response, request, make_response
+from werkzeug.contrib.cache import SimpleCache, MemcachedCache
 import cloudgenix
 
 # attempt to get username/password
@@ -13,24 +14,27 @@ except ImportError:
 
 __author__ = 'Aaron Edwards'
 
-TIME_BETWEEN_API_UPDATES = 60       # seconds
+TIME_BETWEEN_API_UPDATES = 120       # seconds
 TIME_BETWEEN_LOGIN_ATTEMPTS = 300    # seconds
 REFRESH_LOGIN_TOKEN_INTERVAL = 7    # hours
 MAX_CACHE_AGE = 1   # minutes
-TOPO_PROXY_VERSION = cloudgenix.version + "-1"
+TOPO_PROXY_VERSION = cloudgenix.version + "-2"
 
 
 # Generic structure to keep authentication info
 sdk_vars = {
     'logintime': datetime.datetime.utcnow(),
     'logged_in': False,
-    'topo_cache': {},
     # to debug, change the following.
     "jsondetailed": False,
 }
 
+# set cache
+topo_cache = SimpleCache()
+
 # create the API constructor
 sdk = cloudgenix.API()
+# sdk.set_debug(2)
 
 # create the flask app
 app = Flask(__name__)
@@ -86,78 +90,6 @@ def check_login():
         return True
 
 
-def check_sites_cache(cache_dict):
-    """
-    Check a simple cache of topology queries.
-    :param site_id: Site ID
-    :param cache_dict: Dict containing cache entries
-    :return: Tuple (True/False, cached record)
-    """
-    cache_check_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=MAX_CACHE_AGE)
-
-    # attempt to get cached topology
-    cache_record = cache_dict.get("allsites", {})
-
-    # check empty record
-    if not cache_record:
-        app.logger.debug("Cache Miss: No Sites Record")
-        return False, {}
-
-    time = cache_record.get('time')
-    response = cache_record.get('response', {})
-
-    # bad values
-    if not time or not response or not isinstance(time, datetime.datetime):
-        app.logger.debug("Cache Miss: Empty Sites records or wrong type")
-        return False, {}
-
-    # cache stale
-    elif time < cache_check_time:
-        app.logger.debug("Cache Miss: Stale Sites cache")
-        return False, {}
-
-    # got this far, everything is good
-    else:
-        app.logger.debug("Sites Cache Hit")
-        return True, response
-
-
-def check_topo_cache(site_id, cache_dict):
-    """
-    Check a simple cache of topology queries.
-    :param site_id: Site ID
-    :param cache_dict: Dict containing cache entries
-    :return: Tuple (True/False, cached record)
-    """
-    cache_check_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=MAX_CACHE_AGE)
-
-    # attempt to get cached topology
-    cache_record = cache_dict.get(site_id, {})
-
-    # check empty record
-    if not cache_record:
-        app.logger.debug("Cache Miss: No Topology Record")
-        return False, {}
-
-    time = cache_record.get('time')
-    response = cache_record.get('response', {})
-
-    # bad values
-    if not time or not response or not isinstance(time, datetime.datetime):
-        app.logger.debug("Cache Miss: Empty Topology records or wrong type")
-        return False, {}
-
-    # cache stale
-    elif time < cache_check_time:
-        app.logger.debug("Cache Miss: Stale Topology cache")
-        return False, {}
-
-    # got this far, everything is good
-    else:
-        app.logger.debug("Topology Cache Hit")
-        return True, response
-
-
 def query_topo_from_path(path):
     """
     Query the topology API and Cache for the path request
@@ -200,10 +132,11 @@ def query_topo_from_path(path):
 
         # check the cache
         from_cache = False
-        cache_success, cache_topo = check_topo_cache(target_site, sdk_vars['topo_cache'])
+        # cache_success, cache_topo = check_topo_cache(target_site, sdk_vars['topo_cache'])
+        cache_topo = topo_cache.get(target_site)
 
-        if cache_success:
-            topo_success = cache_success
+        if cache_topo:
+            topo_success = True
             raw_topo = cache_topo
             from_cache = True
 
@@ -240,10 +173,12 @@ def query_topo_from_path(path):
 
         # if we get here, got a good response. Update cache if not from cache.
         if not from_cache:
-            sdk_vars['topo_cache'][target_site] = {
-                'response': raw_topo,
-                'time': datetime.datetime.utcnow()
-            }
+            app.logger.debug('%s not from_cache', target_site)
+            topo_cache.set(target_site, raw_topo, timeout=TIME_BETWEEN_API_UPDATES)
+            # sdk_vars['topo_cache'][target_site] = {
+            #     'response': raw_topo,
+            #     'time': datetime.datetime.utcnow()
+            # }
 
         # is it a /site/:siteid: query?
         if len(path_list) == 2:
@@ -296,10 +231,11 @@ def query_sites():
 
         # check the cache
         from_cache = False
-        cache_success, cache_sites = check_sites_cache(sdk_vars['topo_cache'])
+        # cache_success, cache_sites = check_sites_cache(sdk_vars['topo_cache'])
+        cache_sites = topo_cache.get('allsites')
 
-        if cache_success:
-            sites_success = cache_success
+        if cache_sites:
+            sites_success = True
             raw_sites = cache_sites
             from_cache = True
 
@@ -330,10 +266,12 @@ def query_sites():
 
         # if we get here, got a good response. Update cache if not from cache.
         if not from_cache:
-            sdk_vars['topo_cache']['allsites'] = {
-                'response': raw_sites,
-                'time': datetime.datetime.utcnow()
-            }
+            app.logger.debug('allsites not from_cache')
+            topo_cache.set('allsites', raw_sites, timeout=TIME_BETWEEN_API_UPDATES)
+            # sdk_vars['topo_cache']['allsites'] = {
+            #     'response': raw_sites,
+            #     'time': datetime.datetime.utcnow()
+            # }
 
         # good data, return items only.
         items = raw_sites.get('items', [])
@@ -355,9 +293,16 @@ def query_sites():
         }
 
 
-def create_app(configfile=None):
-
+def create_app(configfile=None, memcached=None):
     # app is created automatically when this is imported.
+
+    global topo_cache
+
+    # print("MEMCACHED: %s", memcached)
+
+    if memcached:
+        topo_cache = MemcachedCache(servers=memcached.split(','), default_timeout=TIME_BETWEEN_API_UPDATES,
+                                    key_prefix="topo-proxy-app-")
 
     @app.route("/robots.txt")  # die robots die
     def robots_txt():

@@ -1,2 +1,3 @@
 cloudgenix>=4.5.5b4
 flask
+werkzeug

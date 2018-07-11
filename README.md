@@ -54,4 +54,5 @@ MIT
 #### Version
 Version | Changes
 ------- | --------
+**1.1.0**| Update to replace Dict cache with SimpleCache() and also support MemcachedCache().
 **1.0.0**| Initial Release.
