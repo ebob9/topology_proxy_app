@@ -11,7 +11,7 @@ import sys
 import argparse
 
 sys.path.append(os.path.dirname(__name__))
-from topo import create_app
+from .topo import create_app
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="CloudGenix topology API Simple HTTP gateway.")
