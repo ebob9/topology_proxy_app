@@ -38,13 +38,13 @@ This is useful to allow simple TCP/HTTP monitoring apps that can't perform compl
 * Active CloudGenix Account
 * Python >= 2.7 (3.x not tested yet)
 * Python modules:
-    * cloudgenix >=4.5.5b3 - <https://github.com/CloudGenix/sdk-python>
+    * cloudgenix >=5.1.1b1 - <https://github.com/CloudGenix/sdk-python>
     * flask - <https://github.com/pallets/flask>
+    * werkzeug - <https://github.com/pallets/werkzeug>
+    * get_docker_secret (used for docker only) - 
 
 #### Installation/Use
-* Go to the topo/ directory, and copy `cloudgenix_settings.py.example` to `cloudgenix_settings.py`.
-* Edit `cloudgenix_settings.py`, and enter a username/password with viewonly role.
-  * If this tool will run on multiple instances behind a LB (not required), each instance needs its own user id.
+* Set CGX_AUTH_TOKEN environment variable to a static CloudGenix AUTH_TOKEN.
 * Run `topo_app.py`. By default, `topo_app.py` listens on 0.0.0.0, port 8080.
   * Run `topo_app.py --help` for info on args and switches.
 
@@ -54,5 +54,6 @@ MIT
 #### Version
 Version | Changes
 ------- | --------
+**2.0.0**| Update for Docker Container and static AUTH_TOKEN support (removes user/password support)
 **1.1.0**| Update to replace Dict cache with SimpleCache() and also support MemcachedCache().
 **1.0.0**| Initial Release.

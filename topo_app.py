@@ -1,16 +1,17 @@
 #!/usr/bin/env python
-# under normal circumstances, this script would not be necessary. the
-# sample_application would have its own setup.py and be properly installed;
-# however since it is not bundled in the sdist package, we need some hacks
-# to make it work
+#
+# (c) 2019 CloudGenix, Inc
+#
+# License: MIT
+#
+# With standalone option, CGX_AUTH_TOKEN environment variable MUST BE SET.
 
 import os
 import sys
 import argparse
 
 sys.path.append(os.path.dirname(__name__))
-from topo import create_app
-
+from .topo import create_app
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="CloudGenix topology API Simple HTTP gateway.")
@@ -39,8 +40,14 @@ if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=8080,
     #         debug=True)
 
+    # load auth token from env var.
+    auth_token = os.environ.get('CGX_AUTH_TOKEN')
+    if not auth_token:
+        sys.stderr.write("ERROR: Environment Variable 'CGX_AUTH_TOKEN' not set. Exiting.")
+        sys.exit(1)
+
     # create an app instance
-    app = create_app(memcached=args['memcached'])
+    app = create_app(auth_token=auth_token, memcached=args['memcached'])
 
     app.run(host=args['ip'],
             port=args['port'],
