@@ -201,7 +201,7 @@ def query_sites():
         return items
 
 
-def create_app(auth_token=None, memcached=None, always_pretty=True):
+def create_app(auth_token=None, memcached=None):
     # app is created automatically when this is imported.
 
     # if set, update SDK with auth token
@@ -246,7 +246,7 @@ def create_app(auth_token=None, memcached=None, always_pretty=True):
         if type(result) is dict and result.get('return_code'):
             return_code = result.get('return_code')
 
-        return make_response(jsonify(result, JSONIFY_PRETTYPRINT_REGULAR=always_pretty), return_code)
+        return make_response(jsonify(result), return_code)
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
@@ -259,7 +259,7 @@ def create_app(auth_token=None, memcached=None, always_pretty=True):
         if type(result) is dict and result.get('return_code'):
             return_code = result.get('return_code')
 
-        return make_response(jsonify(result, JSONIFY_PRETTYPRINT_REGULAR=always_pretty), return_code)
+        return make_response(jsonify(result), return_code)
 
     return app
 

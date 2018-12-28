@@ -14,7 +14,9 @@ debug = get_docker_secret('cgx_debug', default=False, cast_to=bool)
 always_pretty = get_docker_secret('cgx_always_pretty', default=True, cast_to=bool)
 
 # create an app instance
-app = create_app(auth_token=auth_token, memcached=memcached, always_pretty=always_pretty)
+app = create_app(auth_token=auth_token, memcached=memcached)
+# Set app to use pretty json by default
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = always_pretty
 
 if __name__ == '__main__':
     app.run(debug=debug)
