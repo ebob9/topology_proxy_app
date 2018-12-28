@@ -2,3 +2,5 @@ cloudgenix>=5.1.1b1
 flask
 werkzeug
 get_docker_secret
+python-memcached
+

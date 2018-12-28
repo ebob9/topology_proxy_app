@@ -37,6 +37,8 @@ def query_topo_from_path(path):
     :return: list or dict with the response.
     """
 
+    from_cache = False
+
     # remove leading and trailing '/'
     path_strip = path.strip('/')
     # split into array
@@ -48,7 +50,7 @@ def query_topo_from_path(path):
         return {
             "error": "URL Not Found",
             "return_code": 404
-        }
+        }, from_cache
 
     # get IDs
     if path_list[0].lower() != 'site':
@@ -57,7 +59,7 @@ def query_topo_from_path(path):
         return {
             "error": "URL Not Found",
             "return_code": 404
-        }
+        }, from_cache
 
     if len(path_list) == 4 and path_list[2].lower() not in ['swi', 'path']:
         # only valid pattern is site/:id/swi/:id or site/:id
@@ -65,13 +67,12 @@ def query_topo_from_path(path):
         return {
             "error": "URL Not Found",
             "return_code": 404
-        }
+        }, from_cache
     # basic query validation done. make query.
 
     target_site = path_list[1]
 
     # check the cache
-    from_cache = False
     cache_topo = topo_cache.get(target_site)
 
     if cache_topo:
@@ -100,13 +101,13 @@ def query_topo_from_path(path):
                 "error": "API call failed (forbidden)",
                 "return_code": 403,
                 "data": raw_topo
-            }
+            }, from_cache
         # any other reason, return error.
         return {
             "error": "API call failed",
             "return_code": 500,
             "data": raw_topo
-        }
+        }, from_cache
 
     # if we get here, got a good response. Update cache if not from cache.
     if not from_cache:
@@ -122,10 +123,10 @@ def query_topo_from_path(path):
             return {
                 "error": "No links found",
                 "return_code": 404
-            }
+            }, from_cache
         else:
             # got match, return
-            return full_links
+            return full_links, from_cache
 
     # is it a /site/:siteid:/swi/:swi_id: query?
     if len(path_list) == 4:
@@ -139,16 +140,16 @@ def query_topo_from_path(path):
             return {
                 "error": "Requested SWI/PATH not found",
                 "return_code": 404
-            }
+            }, from_cache
         else:
             # got match, return
-            return swi_record
+            return swi_record, from_cache
 
 
 def query_sites():
     """
     Query the sites API.
-    :return: list or dict with the response.
+    :return: list or dict with the response, from_cache (bool)
     """
 
     # check the cache
@@ -175,13 +176,13 @@ def query_sites():
                 "error": "API call failed (forbidden)",
                 "return_code": 403,
                 "data": raw_sites
-            }
+            }, from_cache
         # any other reason, return error.
         return {
             "error": "API call failed",
             "return_code": 500,
             "data": raw_sites
-        }
+        }, from_cache
 
     # if we get here, got a good response. Update cache if not from cache.
     if not from_cache:
@@ -195,10 +196,10 @@ def query_sites():
             "error": "Empty sites list or API call failed",
             "return_code": 500,
             "data": raw_sites
-        }
+        }, from_cache
     else:
         # everything good, return items
-        return items
+        return items, from_cache
 
 
 def create_app(auth_token=None, memcached=None):
@@ -241,12 +242,22 @@ def create_app(auth_token=None, memcached=None):
         return_code = 200
 
         # get topo info
-        result = query_sites()
+        result, from_cache = query_sites()
 
         if type(result) is dict and result.get('return_code'):
             return_code = result.get('return_code')
 
-        return make_response(jsonify(result), return_code)
+        response = make_response(jsonify(result), return_code)
+
+        # add cache info headers
+        if from_cache:
+            cache_type = topo_cache.__class__.__name__
+            response.headers['X-From-Cache'] = from_cache
+            response.headers['X-Cache-Type'] = cache_type
+        else:
+            response.headers['X-From-Cache'] = from_cache
+
+        return response
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
@@ -254,12 +265,22 @@ def create_app(auth_token=None, memcached=None):
         return_code = 200
 
         # get topo info
-        result = query_topo_from_path(request.path)
+        result, from_cache = query_topo_from_path(request.path)
 
         if type(result) is dict and result.get('return_code'):
             return_code = result.get('return_code')
 
-        return make_response(jsonify(result), return_code)
+        response = make_response(jsonify(result), return_code)
+
+        # add cache info headers
+        if from_cache:
+            cache_type = topo_cache.__class__.__name__
+            response.headers['X-From-Cache'] = from_cache
+            response.headers['X-Cache-Type'] = cache_type
+        else:
+            response.headers['X-From-Cache'] = from_cache
+
+        return response
 
     return app
 
