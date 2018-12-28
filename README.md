@@ -54,6 +54,7 @@ MIT
 #### Version
 Version | Changes
 ------- | --------
+**2.0.1**| Fix for high multi-threading worker issue (CGX sdk /tmp file for CA Verify)
 **2.0.0**| Update for Docker Container and static AUTH_TOKEN support (removes user/password support)
 **1.1.0**| Update to replace Dict cache with SimpleCache() and also support MemcachedCache().
 **1.0.0**| Initial Release.
