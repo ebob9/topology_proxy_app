@@ -1,5 +1,3 @@
-import datetime
-
 from flask import Flask, jsonify, Response, request, make_response
 from werkzeug.contrib.cache import SimpleCache, MemcachedCache
 import cloudgenix
@@ -7,7 +5,7 @@ import cloudgenix
 __author__ = 'Aaron Edwards'
 
 APP_NAME = "Topology Proxy App"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.0.1"
 
 TIME_BETWEEN_API_UPDATES = 300  # seconds
 MAX_CACHE_AGE = 5  # minutes
@@ -16,7 +14,7 @@ MAX_CACHE_AGE = 5  # minutes
 topo_cache = SimpleCache()
 
 # create the API constructor
-sdk = cloudgenix.API()
+sdk = cloudgenix.API(update_check=False, ssl_verify=False)
 
 # set a custom user-agent header extension in case we need it to track down issues.
 req_session = sdk.expose_session()
@@ -202,8 +200,15 @@ def query_sites():
         return items, from_cache
 
 
-def create_app(auth_token=None, memcached=None):
+def create_app(auth_token=None, memcached=None, ssl_verify=True):
     # app is created automatically when this is imported.
+
+    # SDK constructor is set to ssl_verify=False at launch. This prevents
+    # workers from creating default CA_VERIFY /tmp files for each by default.
+    # if this is not changed by calling app, the CA_VERIFY will set to True by default.
+    # But first, check if ssl_verify is different than what the constructor is already using.
+    if sdk.verify != ssl_verify:
+        sdk.ssl_verify(ssl_verify)
 
     # if set, update SDK with auth token
     if auth_token is not None:
