@@ -6,7 +6,7 @@
 
 from get_docker_secret import get_docker_secret
 
-from .topo import create_app
+from topo import create_app
 
 auth_token = get_docker_secret('cgx_auth_token', default=None)
 memcached = get_docker_secret('cgx_memcached', default=None)
