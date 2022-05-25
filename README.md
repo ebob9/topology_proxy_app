@@ -42,6 +42,7 @@ This is useful to allow simple TCP/HTTP monitoring apps that can't perform compl
     * flask - <https://github.com/pallets/flask>
     * werkzeug - <https://github.com/pallets/werkzeug>
     * get_docker_secret (used for docker only) - 
+    * 
 
 #### Installation/Use
 * Set CGX_AUTH_TOKEN environment variable to a static CloudGenix AUTH_TOKEN.
@@ -54,6 +55,8 @@ MIT
 #### Version
 Version | Changes
 ------- | --------
+**2.0.3**| Update to 5.6.2b2 SDK, latest flask & migrate to cachelib
+**2.0.2**| Memcached and Simple Cache support (never pushed to github)
 **2.0.1**| Fix for high multi-threading worker issue (CGX sdk /tmp file for CA Verify)
 **2.0.0**| Update for Docker Container and static AUTH_TOKEN support (removes user/password support)
 **1.1.0**| Update to replace Dict cache with SimpleCache() and also support MemcachedCache().

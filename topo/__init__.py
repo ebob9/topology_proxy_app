@@ -1,11 +1,13 @@
 from flask import Flask, jsonify, Response, request, make_response
-from werkzeug.contrib.cache import SimpleCache, MemcachedCache
+from cachelib.simple import SimpleCache
+from cachelib.memcached import MemcachedCache
 import cloudgenix
+from cloudgenix import jdout
 
 __author__ = 'Aaron Edwards'
 
 APP_NAME = "Topology Proxy App"
-APP_VERSION = "2.0.1"
+APP_VERSION = "2.0.3"
 
 TIME_BETWEEN_API_UPDATES = 300  # seconds
 MAX_CACHE_AGE = 5  # minutes
@@ -26,6 +28,9 @@ req_session.headers.update({
 
 # create the flask app
 app = Flask(__name__)
+
+# set pretty json printing
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 
 def query_topo_from_path(path):
